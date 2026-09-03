@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Videoke Night</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0B0714;
+    --bg-panel:#150F20;
+    --bg-panel-raised:#1D1529;
+    --line:#2C2138;
+    --pink:#FF2E88;
+    --pink-dim:#B21F60;
+    --cyan:#21E6C1;
+    --gold:#FFC857;
+    --text:#F4EEFF;
+    --text-muted:#9C8FB5;
+    --text-faint:#6B5E82;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 120% 80% at 50% -10%, #2A1240 0%, transparent 55%),
+      radial-gradient(ellipse 80% 60% at 100% 100%, #0F2A2A 0%, transparent 50%),
+      var(--bg-deep);
+    color:var(--text);
+    font-family:'Manrope',sans-serif;
+    min-height:100vh;
+  }
+  ::selection{background:var(--pink);color:#fff;}
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--pink-dim);}
+
+  header.marquee{
+    padding:22px clamp(16px,3vw,40px) 14px;
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    flex-wrap:wrap;
+    border-bottom:1px solid var(--line);
+  }
+  header.marquee h1{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(30px,4vw,44px);
+    letter-spacing:2px;
+    margin:0;
+    color:var(--text);
+    text-shadow:0 0 18px rgba(255,46,136,.45), 0 0 36px rgba(33,230,193,.15);
+  }
+  header.marquee h1 span{color:var(--pink);}
+  header.marquee p{
+    margin:0;
+    color:var(--text-muted);
+    font-size:13px;
+    font-weight:500;
+  }
+
+  .app{
+    max-width:1500px;
+    margin:0 auto;
+    padding:clamp(14px,2.5vw,28px);
+    display:grid;
+    grid-template-columns:1.65fr 1fr;
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width:920px){
+    .app{grid-template-columns:1fr;}
+  }
+
+  /* ---------- LEFT: PLAYER ---------- */
+  .player-panel{
+    background:linear-gradient(180deg,var(--bg-panel-raised),var(--bg-panel));
+    border:1px solid var(--line);
+    border-radius:16px;
+    overflow:hidden;
+    position:sticky;
+    top:16px;
+  }
+  .stage-frame{
+    position:relative;
+    aspect-ratio:16/9;
+    background:#000;
+    border-bottom:1px solid var(--line);
+  }
+  .stage-frame::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    box-shadow:inset 0 0 60px rgba(255,46,136,.12);
+    z-index:2;
+  }
+  #yt-player{position:absolute;inset:0;width:100%;height:100%;}
+  .empty-stage{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:10px;
+    color:var(--text-faint);
+    text-align:center;
+    padding:20px;
+  }
+  .empty-stage .mic{font-size:40px;filter:grayscale(1) opacity(.6);}
+  .empty-stage strong{color:var(--text-muted);font-weight:700;font-size:15px;}
+  .empty-stage span{font-size:12.5px;max-width:280px;line-height:1.5;}
+  .empty-stage.error-stage strong{color:#FF9FC4;}
+  .empty-stage a.watch-link{
+    margin-top:4px;
+    display:inline-flex;align-items:center;gap:6px;
+    background:linear-gradient(135deg,var(--pink),var(--pink-dim));
+    color:#fff;text-decoration:none;
+    font-weight:800;font-size:13px;
+    padding:9px 18px;border-radius:10px;
+  }
+  .empty-stage a.watch-link:hover{filter:brightness(1.1);}
+
+  .now-playing{
+    padding:18px 22px 20px;
+  }
+  .np-label{
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:1.5px;
+    color:var(--cyan);
+    text-transform:uppercase;
+    margin:0 0 6px;
+  }
+  #np-title{
+    margin:0 0 3px;
+    font-size:19px;
+    font-weight:800;
+    line-height:1.3;
+  }
+  #np-channel{
+    margin:0 0 16px;
+    font-size:13px;
+    color:var(--text-muted);
+    font-weight:600;
+  }
+  .transport{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .transport button{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    background:var(--bg-panel-raised);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:10px 16px;
+    border-radius:10px;
+    font-family:inherit;
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+    transition:border-color .15s, transform .1s, box-shadow .15s;
+  }
+  .transport button:hover{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink) inset,0 0 16px rgba(255,46,136,.25);}
+  .transport button:active{transform:scale(.97);}
+  .transport button.primary{
+    background:linear-gradient(135deg,var(--pink),var(--pink-dim));
+    border-color:transparent;
+  }
+  .transport button.primary:hover{box-shadow:0 0 22px rgba(255,46,136,.55);}
+  .transport button:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;transform:none;}
+  .up-next-hint{
+    margin-left:auto;
+    font-size:12px;
+    color:var(--text-faint);
+    font-weight:600;
+  }
+  .up-next-hint b{color:var(--text-muted);}
+
+  /* ---------- RIGHT: SIDE PANEL ---------- */
+  .side-panel{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .card{
+    background:linear-gradient(180deg,var(--bg-panel-raised),var(--bg-panel));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+  }
+  .card h2{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:20px;
+    letter-spacing:1px;
+    margin:0 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card h2 .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+  .count-pill{
+    margin-left:auto;
+    background:var(--bg-deep);
+    border:1px solid var(--line);
+    color:var(--text-muted);
+    font-family:'Manrope',sans-serif;
+    font-size:11.5px;
+    font-weight:700;
+    padding:2px 9px;
+    border-radius:20px;
+  }
+
+  /* API key */
+  .key-row{display:flex;gap:8px;}
+  .key-row input{flex:1;}
+  .field{
+    background:var(--bg-deep);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:9px;
+    font-family:inherit;
+    font-size:13.5px;
+    outline:none;
+    width:100%;
+    transition:border-color .15s;
+  }
+  .field:focus{border-color:var(--cyan);}
+  .field::placeholder{color:var(--text-faint);}
+  .key-note{font-size:11.5px;color:var(--text-faint);margin:8px 0 0;line-height:1.5;}
+  .key-note a{color:var(--cyan);}
+  .btn-small{
+    background:var(--bg-deep);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:0 14px;
+    border-radius:9px;
+    font-family:inherit;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .btn-small:hover{border-color:var(--cyan);}
+  .key-status{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11.5px;font-weight:700;color:var(--text-faint);margin-top:8px;
+  }
+  .key-status .led{width:6px;height:6px;border-radius:50%;background:var(--text-faint);}
+  .key-status.ok{color:var(--cyan);}
+  .key-status.ok .led{background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
+
+  /* search */
+  .search-row{display:flex;gap:8px;margin-bottom:10px;}
+  .search-row input{flex:1;}
+  .search-row button{
+    background:linear-gradient(135deg,var(--cyan),#0F8F7A);
+    border:none;color:#052420;font-weight:800;
+    padding:0 16px;border-radius:9px;cursor:pointer;font-family:inherit;font-size:13.5px;
+  }
+  .search-row button:hover{filter:brightness(1.08);}
+  .toggle-row{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:12px;
+  }
+  .toggle-row input{accent-color:var(--pink);}
+
+  .list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    max-height:340px;
+    overflow-y:auto;
+    padding-right:2px;
+  }
+  .row{
+    display:flex;
+    gap:10px;
+    background:var(--bg-deep);
+    border:1px solid var(--line);
+    border-radius:11px;
+    padding:8px;
+    align-items:center;
+  }
+  .row img{
+    width:78px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#000;
+  }
+  .row-info{min-width:0;flex:1;}
+  .row-info .t{
+    font-size:13px;font-weight:700;line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .row-info .c{font-size:11.5px;color:var(--text-faint);margin-top:2px;font-weight:600;}
+  .row-actions{display:flex;gap:6px;flex-shrink:0;}
+  .icon-btn{
+    width:30px;height:30px;border-radius:8px;
+    background:var(--bg-panel-raised);border:1px solid var(--line);
+    color:var(--text-muted);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:14px;flex-shrink:0;
+    transition:border-color .15s,color .15s;
+  }
+  .icon-btn:hover{border-color:var(--pink);color:var(--pink);}
+  .icon-btn.play:hover{border-color:var(--cyan);color:var(--cyan);}
+
+  .queue-row{position:relative;}
+  .queue-row .idx{
+    width:20px;text-align:center;flex-shrink:0;
+    font-family:'Bebas Neue',sans-serif;color:var(--text-faint);font-size:15px;
+  }
+
+  .empty-msg{
+    color:var(--text-faint);
+    font-size:12.5px;
+    text-align:center;
+    padding:22px 10px;
+    line-height:1.6;
+  }
+  .status-msg{
+    font-size:12.5px;
+    font-weight:600;
+    padding:10px 12px;
+    border-radius:9px;
+    margin-bottom:10px;
+  }
+  .status-msg.error{background:rgba(255,46,136,.1);border:1px solid var(--pink-dim);color:#FF9FC4;}
+  .status-msg.loading{background:rgba(33,230,193,.08);border:1px solid #1B6E5F;color:var(--cyan);}
+
+  .footer-note{
+    text-align:center;
+    color:var(--text-faint);
+    font-size:11.5px;
+    padding:10px 20px 26px;
+  }
+</style>
+</head>
+<body>
+
+<header class="marquee">
+  <h1>VIDEO<span>KE</span> NIGHT</h1>
+  <p>Search, queue, and sing — powered by YouTube</p>
+</header>
+
+<div class="app">
+
+  <!-- LEFT: PLAYER -->
+  <section class="player-panel">
+    <div class="stage-frame">
+      <div id="yt-player"></div>
+      <div class="empty-stage" id="emptyStage">
+        <div class="mic">🎤</div>
+        <strong>The stage is empty</strong>
+        <span>Search for a song on the right and hit play, or add a few to your queue to get the night going.</span>
+      </div>
+    </div>
+    <div class="now-playing">
+      <p class="np-label">Now Singing</p>
+      <p id="np-title">Nothing queued yet</p>
+      <p id="np-channel">&nbsp;</p>
+      <div class="transport">
+        <button class="primary" id="btnPlayPause" disabled>▶ Play</button>
+        <button id="btnNext" disabled>⏭ Skip</button>
+        <button id="btnRestart" disabled>↺ Restart</button>
+        <a id="watchOnYoutube" class="btn-small" style="display:none;text-decoration:none;color:inherit;" href="#" target="_blank" rel="noopener">↗ Watch on YouTube</a>
+        <span class="up-next-hint" id="upNextHint"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT: SIDE PANEL -->
+  <aside class="side-panel">
+
+    <div class="card" id="apiKeyCard">
+      <h2><span class="dot"></span>YouTube API Key</h2>
+      <div class="key-row">
+        <input class="field" type="password" id="apiKeyInput" placeholder="Paste your YouTube Data API v3 key">
+        <button class="btn-small" id="saveKeyBtn">Save</button>
+      </div>
+      <p class="key-note">Needed to search YouTube. Get a free key from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a> (enable "YouTube Data API v3"). Kept in this tab only — never stored or sent anywhere else.</p>
+      <div class="key-status" id="keyStatus"><span class="led"></span><span>No key set</span></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="dot" style="background:var(--pink);box-shadow:0 0 8px var(--pink);"></span>Find a Song</h2>
+      <form id="searchForm">
+        <div class="search-row">
+          <input class="field" type="text" id="searchInput" placeholder="Song title or artist…">
+          <button type="submit">Search</button>
+        </div>
+      </form>
+      <label class="toggle-row">
+        <input type="checkbox" id="karaokeOnly" checked>
+        Only show karaoke / videoke versions
+      </label>
+      <div id="searchStatus"></div>
+      <div class="list" id="resultsList">
+        <p class="empty-msg">Your search results will show up here.<br>Try "Perfect Ed Sheeran" or "Bohemian Rhapsody".</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="dot" style="background:var(--gold);box-shadow:0 0 8px var(--gold);"></span>Up Next<span class="count-pill" id="queueCount">0</span></h2>
+      <div class="list" id="queueList">
+        <p class="empty-msg">Your queue is empty. Add songs from the search results above.</p>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<p class="footer-note">Search results and playback are provided by YouTube. Your API key stays in your browser tab and resets when you reload.</p>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- STATE ----------
+  let apiKey = "";
+  let queue = [];        // {id, title, channel, thumb}
+  let player = null;
+  let playerReady = false;
+  let currentVideo = null; // {id, title, channel, thumb}
+  let isPlaying = false;
+  let ytApiLoaded = false;
+
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+  const apiKeyInput = $("apiKeyInput");
+  const saveKeyBtn = $("saveKeyBtn");
+  const keyStatus = $("keyStatus");
+  const searchForm = $("searchForm");
+  const searchInput = $("searchInput");
+  const karaokeOnly = $("karaokeOnly");
+  const searchStatus = $("searchStatus");
+  const resultsList = $("resultsList");
+  const queueList = $("queueList");
+  const queueCount = $("queueCount");
+  const emptyStage = $("emptyStage");
+  const npTitle = $("np-title");
+  const npChannel = $("np-channel");
+  const btnPlayPause = $("btnPlayPause");
+  const btnNext = $("btnNext");
+  const btnRestart = $("btnRestart");
+  const upNextHint = $("upNextHint");
+  const watchOnYoutube = $("watchOnYoutube");
+
+  function escapeHtml(str){
+    const d = document.createElement("div");
+    d.textContent = str || "";
+    return d.innerHTML;
+  }
+
+  // ---------- API KEY ----------
+  saveKeyBtn.addEventListener("click", () => {
+    const val = apiKeyInput.value.trim();
+    if(!val){
+      setKeyStatus(false, "No key set");
+      apiKey = "";
+      return;
+    }
+    apiKey = val;
+    setKeyStatus(true, "Key saved for this session");
+  });
+  apiKeyInput.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){ e.preventDefault(); saveKeyBtn.click(); }
+  });
+  function setKeyStatus(ok, text){
+    keyStatus.classList.toggle("ok", ok);
+    keyStatus.querySelector("span:last-child").textContent = text;
+  }
+
+  // ---------- YOUTUBE IFRAME PLAYER ----------
+  window.onYouTubeIframeAPIReady = function(){
+    player = new YT.Player("yt-player", {
+      height: "100%",
+      width: "100%",
+      host: "https://www.youtube-nocookie.com",
+      playerVars: {
+        rel: 0,
+        playsinline: 1,
+        modestbranding: 1,
+        enablejsapi: 1,
+        origin: window.location.origin
+      },
+      events: {
+        onReady: () => { playerReady = true; },
+        onStateChange: onPlayerStateChange,
+        onError: onPlayerError
+      }
+    });
+  };
+
+  function onPlayerError(e){
+    // YouTube error codes: 2 invalid param, 5 HTML5 issue, 100 not found,
+    // 101/150 embedding disabled by owner, 153 embed blocked by this environment.
+    showWatchFallback(e && e.data);
+  }
+
+  function showWatchFallback(code){
+    if(!currentVideo) return;
+    document.getElementById("yt-player").style.display = "none";
+    emptyStage.style.display = "flex";
+    emptyStage.classList.add("error-stage");
+    emptyStage.innerHTML = `
+      <div class="mic">🎤</div>
+      <strong>Can't play this one inline</strong>
+      <span>YouTube blocked embedded playback here${code ? " (code " + escapeHtml(String(code)) + ")" : ""}. This can happen with certain videos or sandboxed previews — open it directly on YouTube instead.</span>
+      <a class="watch-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(currentVideo.id)}" target="_blank" rel="noopener">▶ Watch on YouTube</a>
+    `;
+    isPlaying = false;
+    btnPlayPause.textContent = "▶ Play";
+  }
+
+  function loadYTApi(){
+    if(ytApiLoaded) return;
+    ytApiLoaded = true;
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  }
+  loadYTApi();
+
+  function onPlayerStateChange(e){
+    if(e.data === YT.PlayerState.PLAYING){
+      isPlaying = true;
+      btnPlayPause.textContent = "⏸ Pause";
+    } else if(e.data === YT.PlayerState.PAUSED){
+      isPlaying = false;
+      btnPlayPause.textContent = "▶ Play";
+    } else if(e.data === YT.PlayerState.ENDED){
+      isPlaying = false;
+      playNextInQueue();
+    }
+  }
+
+  function playVideo(video){
+    currentVideo = video;
+    emptyStage.classList.remove("error-stage");
+    emptyStage.style.display = "none";
+    document.getElementById("yt-player").style.display = "block";
+    npTitle.textContent = video.title;
+    npChannel.textContent = video.channel;
+    btnPlayPause.disabled = false;
+    btnRestart.disabled = false;
+    btnNext.disabled = queue.length === 0;
+    watchOnYoutube.href = "https://www.youtube.com/watch?v=" + encodeURIComponent(video.id);
+    watchOnYoutube.style.display = "inline-flex";
+    updateUpNextHint();
+    if(playerReady && player && player.loadVideoById){
+      player.loadVideoById(video.id);
+    } else {
+      // player script still loading — retry shortly
+      setTimeout(() => playVideo(video), 400);
+    }
+  }
+
+  btnPlayPause.addEventListener("click", () => {
+    if(!player || !currentVideo) return;
+    if(isPlaying){ player.pauseVideo(); } else { player.playVideo(); }
+  });
+  btnRestart.addEventListener("click", () => {
+    if(!player || !currentVideo) return;
+    player.seekTo(0, true);
+    player.playVideo();
+  });
+  btnNext.addEventListener("click", playNextInQueue);
+
+  function playNextInQueue(){
+    if(queue.length === 0){
+      btnNext.disabled = true;
+      return;
+    }
+    const next = queue.shift();
+    renderQueue();
+    playVideo(next);
+  }
+
+  function updateUpNextHint(){
+    if(queue.length > 0){
+      upNextHint.innerHTML = `Up next: <b>${escapeHtml(queue[0].title)}</b>`;
+    } else {
+      upNextHint.textContent = "";
+    }
+  }
+
+  // ---------- SEARCH ----------
+  searchForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    runSearch();
+  });
+
+  async function runSearch(){
+    const raw = searchInput.value.trim();
+    if(!raw){ return; }
+    if(!apiKey){
+      searchStatus.innerHTML = `<div class="status-msg error">Add your YouTube API key above first.</div>`;
+      apiKeyInput.focus();
+      return;
+    }
+    let query = raw;
+    if(karaokeOnly.checked && !/karaoke|videoke/i.test(query)){
+      query = query + " karaoke";
+    }
+
+    searchStatus.innerHTML = `<div class="status-msg loading">Searching YouTube…</div>`;
+    resultsList.innerHTML = "";
+
+    try {
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&videoEmbeddable=true&q=${encodeURIComponent(query)}&key=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if(!res.ok){
+        const msg = (data && data.error && data.error.message) ? data.error.message : "Search failed.";
+        searchStatus.innerHTML = `<div class="status-msg error">${escapeHtml(msg)}</div>`;
+        resultsList.innerHTML = `<p class="empty-msg">Check that your API key is valid and the YouTube Data API v3 is enabled for it.</p>`;
+        return;
+      }
+
+      searchStatus.innerHTML = "";
+      const items = (data.items || []).filter(it => it.id && it.id.videoId);
+      if(items.length === 0){
+        resultsList.innerHTML = `<p class="empty-msg">No results found. Try a different search.</p>`;
+        return;
+      }
+      renderResults(items);
+    } catch(err){
+      searchStatus.innerHTML = `<div class="status-msg error">Network error — could not reach YouTube. ${escapeHtml(err.message || "")}</div>`;
+    }
+  }
+
+  function renderResults(items){
+    resultsList.innerHTML = "";
+    items.forEach(it => {
+      const video = {
+        id: it.id.videoId,
+        title: it.snippet.title,
+        channel: it.snippet.channelTitle,
+        thumb: (it.snippet.thumbnails && (it.snippet.thumbnails.medium || it.snippet.thumbnails.default) || {}).url || ""
+      };
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `
+        <img src="${escapeHtml(video.thumb)}" alt="">
+        <div class="row-info">
+          <div class="t">${escapeHtml(video.title)}</div>
+          <div class="c">${escapeHtml(video.channel)}</div>
+        </div>
+        <div class="row-actions">
+          <div class="icon-btn play" title="Play now">▶</div>
+          <div class="icon-btn add" title="Add to queue">＋</div>
+        </div>
+      `;
+      row.querySelector(".play").addEventListener("click", () => playVideo(video));
+      row.querySelector(".add").addEventListener("click", () => addToQueue(video));
+      resultsList.appendChild(row);
+    });
+  }
+
+  // ---------- QUEUE ----------
+  function addToQueue(video){
+    queue.push(video);
+    renderQueue();
+    if(!currentVideo){
+      playNextInQueue();
+    } else {
+      btnNext.disabled = false;
+      updateUpNextHint();
+    }
+  }
+
+  function removeFromQueue(index){
+    queue.splice(index, 1);
+    renderQueue();
+    btnNext.disabled = queue.length === 0;
+    updateUpNextHint();
+  }
+
+  function renderQueue(){
+    queueCount.textContent = queue.length;
+    if(queue.length === 0){
+      queueList.innerHTML = `<p class="empty-msg">Your queue is empty. Add songs from the search results above.</p>`;
+      return;
+    }
+    queueList.innerHTML = "";
+    queue.forEach((video, i) => {
+      const row = document.createElement("div");
+      row.className = "row queue-row";
+      row.innerHTML = `
+        <div class="idx">${i + 1}</div>
+        <img src="${escapeHtml(video.thumb)}" alt="">
+        <div class="row-info">
+          <div class="t">${escapeHtml(video.title)}</div>
+          <div class="c">${escapeHtml(video.channel)}</div>
+        </div>
+        <div class="row-actions">
+          <div class="icon-btn play" title="Play now">▶</div>
+          <div class="icon-btn remove" title="Remove">✕</div>
+        </div>
+      `;
+      row.querySelector(".play").addEventListener("click", () => {
+        queue.splice(i, 1);
+        renderQueue();
+        playVideo(video);
+      });
+      row.querySelector(".remove").addEventListener("click", () => removeFromQueue(i));
+      queueList.appendChild(row);
+    });
+  }
+
+})();
+</script>
+
+</body>
+</html>
