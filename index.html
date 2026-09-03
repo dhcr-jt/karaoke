@@ -45,10 +45,13 @@
     display:grid;
     grid-template-columns:2.4fr 1fr;
     gap:22px;
-    align-items:start;
+    align-items:stretch;
+    min-height:calc(100vh - 56px);
   }
   @media (max-width:920px){
-    .app{grid-template-columns:1fr;}
+    .app{grid-template-columns:1fr; min-height:0;}
+    .player-panel{position:static; height:auto;}
+    .stage-frame{aspect-ratio:16/9; flex:none;}
   }
 
   /* ---------- LEFT: PLAYER ---------- */
@@ -59,10 +62,15 @@
     overflow:hidden;
     position:sticky;
     top:16px;
+    display:flex;
+    flex-direction:column;
+    align-self:start;
+    height:calc(100vh - 56px);
   }
   .stage-frame{
     position:relative;
-    aspect-ratio:16/9;
+    flex:1 1 auto;
+    min-height:0;
     background:#000;
     border-bottom:1px solid var(--line);
   }
