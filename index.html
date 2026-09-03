@@ -21,7 +21,7 @@
     --text-faint:#6B5E82;
   }
   *{box-sizing:border-box;}
-  html,body{height:100%;}
+  html,body{height:100%; overflow-x:hidden;}
   body{
     margin:0;
     background:
@@ -49,7 +49,7 @@
     min-height:calc(100vh - 56px);
   }
   @media (max-width:920px){
-    .app{grid-template-columns:1fr; min-height:0; padding-left:clamp(14px,2.5vw,28px);}
+    .app{grid-template-columns:1fr; min-height:0; padding:clamp(14px,4vw,28px);}
     .player-panel{position:static; height:auto;}
     .stage-frame{aspect-ratio:16/9; flex:none;}
   }
@@ -77,6 +77,10 @@
     min-height:0;
     background:#000;
     border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
   }
   .stage-frame::before{
     content:"";
@@ -85,6 +89,17 @@
     pointer-events:none;
     box-shadow:inset 0 0 60px rgba(255,46,136,.12);
     z-index:2;
+  }
+  .video-16x9{
+    position:relative;
+    height:100%;
+    width:100%;
+    max-width:100%;
+    max-height:100%;
+    aspect-ratio:16/9;
+  }
+  @media (max-width:920px){
+    .video-16x9{height:auto;}
   }
   #yt-player{position:absolute;inset:0;width:100%;height:100%;}
   .empty-stage{
@@ -171,11 +186,14 @@
   }
   .up-next-hint{
     margin-left:auto;
-    font-size:15px;
-    color:var(--text-faint);
+    font-size:20px;
+    color:var(--text-muted);
     font-weight:600;
   }
-  .up-next-hint b{color:var(--text-muted);}
+  .up-next-hint b{color:var(--text);font-weight:800;}
+  @media (max-width:920px){
+    .up-next-hint{margin-left:0; margin-top:4px; width:100%; font-size:18px;}
+  }
 
   /* ---------- RIGHT: SIDE PANEL ---------- */
   .side-panel{
@@ -259,6 +277,13 @@
   .key-status .led{width:6px;height:6px;border-radius:50%;background:var(--text-faint);}
   .key-status.ok{color:var(--cyan);}
   .key-status.ok .led{background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
+  .key-collapsed{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .key-collapsed .key-status{margin-top:0;font-size:13px;}
 
   /* search */
   .search-row{display:flex;gap:8px;margin-bottom:10px;}
@@ -354,11 +379,13 @@
   <!-- LEFT: PLAYER -->
   <section class="player-panel">
     <div class="stage-frame">
-      <div id="yt-player"></div>
-      <div class="empty-stage" id="emptyStage">
-        <div class="mic">🎤</div>
-        <strong>The stage is empty</strong>
-        <span>Search for a song on the right and hit play, or add a few to your queue to get the night going.</span>
+      <div class="video-16x9">
+        <div id="yt-player"></div>
+        <div class="empty-stage" id="emptyStage">
+          <div class="mic">🎤</div>
+          <strong>The stage is empty</strong>
+          <span>Search for a song on the right and hit play, or add a few to your queue to get the night going.</span>
+        </div>
       </div>
     </div>
     <div class="now-playing">
@@ -404,13 +431,19 @@
     </div>
 
     <div class="card" id="apiKeyCard">
-      <h2><span class="dot"></span>YouTube API Key</h2>
-      <div class="key-row">
-        <input class="field" type="password" id="apiKeyInput" placeholder="Paste your YouTube Data API v3 key">
-        <button class="btn-small" id="saveKeyBtn">Save</button>
+      <div id="apiKeyForm">
+        <h2><span class="dot"></span>YouTube API Key</h2>
+        <div class="key-row">
+          <input class="field" type="password" id="apiKeyInput" placeholder="Paste your YouTube Data API v3 key">
+          <button class="btn-small" id="saveKeyBtn">Save</button>
+        </div>
+        <p class="key-note">Needed to search YouTube. Get a free key from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a> (enable "YouTube Data API v3"). Kept in this tab only — never stored or sent anywhere else.</p>
+        <div class="key-status" id="keyStatus"><span class="led"></span><span>No key set</span></div>
       </div>
-      <p class="key-note">Needed to search YouTube. Get a free key from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a> (enable "YouTube Data API v3"). Kept in this tab only — never stored or sent anywhere else.</p>
-      <div class="key-status" id="keyStatus"><span class="led"></span><span>No key set</span></div>
+      <div id="apiKeyCollapsed" class="key-collapsed" style="display:none;">
+        <span class="key-status ok"><span class="led"></span><span>YouTube API key saved</span></span>
+        <button class="btn-small" id="editKeyBtn">Edit</button>
+      </div>
     </div>
 
   </aside>
@@ -449,6 +482,9 @@
   const btnRestart = $("btnRestart");
   const upNextHint = $("upNextHint");
   const watchOnYoutube = $("watchOnYoutube");
+  const apiKeyForm = $("apiKeyForm");
+  const apiKeyCollapsed = $("apiKeyCollapsed");
+  const editKeyBtn = $("editKeyBtn");
 
   function escapeHtml(str){
     const d = document.createElement("div");
@@ -466,6 +502,13 @@
     }
     apiKey = val;
     setKeyStatus(true, "Key saved for this session");
+    apiKeyForm.style.display = "none";
+    apiKeyCollapsed.style.display = "flex";
+  });
+  editKeyBtn.addEventListener("click", () => {
+    apiKeyCollapsed.style.display = "none";
+    apiKeyForm.style.display = "block";
+    apiKeyInput.focus();
   });
   apiKeyInput.addEventListener("keydown", (e) => {
     if(e.key === "Enter"){ e.preventDefault(); saveKeyBtn.click(); }
